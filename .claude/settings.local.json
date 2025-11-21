@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(adb devices:*)",
+      "Bash(\"C:\\Users\\eodbs\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe\" devices)",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(gradle assembleDebug:*)",
+      "Bash(curl:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
