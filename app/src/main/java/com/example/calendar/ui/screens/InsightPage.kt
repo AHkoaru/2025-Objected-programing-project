@@ -33,7 +33,7 @@ fun InsightPage(
         modifier = modifier
             .fillMaxSize()
             .background(BackgroundGray)
-            .padding(bottom = 80.dp),
+            .padding(bottom = 0.dp),
         contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {

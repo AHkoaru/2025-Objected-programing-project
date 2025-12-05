@@ -1,18 +1,22 @@
 package com.example.calendar.viewmodels
 
+import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import com.example.calendar.models.Event
+import com.example.calendar.notifications.NotificationScheduler
+import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
+import java.util.Locale
 
 enum class TabScreen {
     CALENDAR, LIST, INSIGHT, AI
 }
 
-class CalendarViewModel : ViewModel() {
+class CalendarViewModel(private val application: Application) : AndroidViewModel(application) {
     private var _activeTab by mutableStateOf(TabScreen.CALENDAR)
     val activeTab: TabScreen
         get() = _activeTab
@@ -72,20 +76,52 @@ class CalendarViewModel : ViewModel() {
 
     fun addEvent(event: Event) {
         events = events + event
+        scheduleEventNotification(event)
     }
 
     fun updateEvent(updatedEvent: Event) {
         events = events.map { if (it.id == updatedEvent.id) updatedEvent else it }
+        scheduleEventNotification(updatedEvent)
     }
 
     fun deleteEvent(eventId: String) {
-        events = events.filter { it.id != eventId }
+        events.find { it.id == eventId }?.let { event ->
+            cancelEventNotification(event)
+            events = events.filter { it.id != eventId }
+        }
     }
 
     fun editFromDetail(event: Event) {
         selectedEvent = event
         detailDialogOpen = false
         editDialogOpen = true
+    }
+
+    private fun scheduleEventNotification(event: Event) {
+        val reminderTime = getReminderTime(event.date, event.startTime)
+        if (reminderTime > System.currentTimeMillis()) {
+            NotificationScheduler.scheduleNotification(application, event, reminderTime)
+        }
+    }
+
+    private fun cancelEventNotification(event: Event) {
+        NotificationScheduler.cancelNotification(application, event)
+    }
+
+    private fun getReminderTime(date: Date, startTime: String): Long {
+        val timeFormat = SimpleDateFormat("h:mm a", Locale.US)
+        val eventTime = timeFormat.parse(startTime)
+
+        val eventCalendar = Calendar.getInstance().apply {
+            time = date
+            val cal = Calendar.getInstance().apply { time = eventTime!! }
+            set(Calendar.HOUR_OF_DAY, cal.get(Calendar.HOUR_OF_DAY))
+            set(Calendar.MINUTE, cal.get(Calendar.MINUTE))
+            set(Calendar.SECOND, 0)
+            add(Calendar.MINUTE, -10) // 10-minute reminder
+        }
+
+        return eventCalendar.timeInMillis
     }
 
     private fun getSampleEvents(): List<Event> {
