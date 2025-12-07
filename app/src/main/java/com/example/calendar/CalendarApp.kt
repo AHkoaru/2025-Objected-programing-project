@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.calendar.ui.components.*
@@ -17,6 +19,7 @@ import com.example.calendar.viewmodels.TabScreen
 fun CalendarApp() {
     CalendarAppTheme {
         val viewModel: CalendarViewModel = viewModel()
+        val events by viewModel.events.collectAsState()
 
         Scaffold(
             topBar = {
@@ -37,7 +40,7 @@ fun CalendarApp() {
             ) {
                 when (viewModel.activeTab) {
                     TabScreen.CALENDAR -> CalendarPage(
-                        events = viewModel.events,
+                        events = events,
                         selectedDate = viewModel.selectedDate,
                         onDateSelect = { viewModel.setSelectedDate(it) },
                         onAddEvent = { viewModel.openAddDialog() },
@@ -45,17 +48,17 @@ fun CalendarApp() {
                     )
 
                     TabScreen.LIST -> EventListPage(
-                        events = viewModel.events,
+                        events = events,
                         onEventClick = { viewModel.openDetailDialog(it) },
                         onAddEvent = { viewModel.openAddDialog() }
                     )
 
                     TabScreen.INSIGHT -> InsightPage(
-                        events = viewModel.events
+                        events = events
                     )
 
                     TabScreen.AI -> AISearchPage(
-                        events = viewModel.events,
+                        events = events,
                         onEventClick = { viewModel.openDetailDialog(it) }
                     )
                 }
@@ -90,7 +93,7 @@ fun CalendarApp() {
                     viewModel.editFromDetail(event)
                 },
                 onDelete = { eventId ->
-                    viewModel.deleteEvent(eventId)
+                    viewModel.deleteEvent(eventId.id)
                     viewModel.closeDetailDialog()
                 }
             )

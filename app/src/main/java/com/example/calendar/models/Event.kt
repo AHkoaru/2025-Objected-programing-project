@@ -1,9 +1,13 @@
 package com.example.calendar.models
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import java.util.Date
 
+@Entity
 data class Event(
-    val id: String,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
     val title: String,
     val date: Date,
     val startTime: String,
