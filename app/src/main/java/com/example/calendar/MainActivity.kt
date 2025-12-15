@@ -1,6 +1,9 @@
 package com.example.calendar
 
 import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -31,7 +34,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        createNotificationChannel()
         askNotificationPermission()
 
         enableEdgeToEdge()
@@ -46,7 +49,19 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
+    private fun createNotificationChannel() {
+        val name = "Event Reminders" // 채널 이름 (사용자 설정에 보임)
+        val descriptionText = "Shows reminders for calendar events" // 채널 설명
+        val importance = NotificationManager.IMPORTANCE_HIGH // 알림 중요도
+        // 채널 ID는 NotificationReceiver에서 사용하는 ID와 반드시 같아야 합니다.
+        val channel = NotificationChannel("EVENT_REMINDERS", name, importance).apply {
+            description = descriptionText
+        }
+        // 시스템에 이 채널을 등록합니다.
+        val notificationManager: NotificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
+    }
     private fun askNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=

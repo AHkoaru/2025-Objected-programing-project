@@ -1,6 +1,8 @@
 package com.example.calendar.viewmodels
 
 import android.app.Application
+import android.service.notification.Condition
+import android.service.notification.Condition.newId
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -88,10 +90,11 @@ class CalendarViewModel(private val application: Application) : AndroidViewModel
     }
 
     fun addEvent(event: Event) = viewModelScope.launch {
-        eventDao.insertEvent(event)
+        val newId = eventDao.insertEvent(event)
+        val scheduledEvent = event.copy(id = newId.toInt())
         // TODO: The notification for a new event might not be scheduled correctly as the ID is generated upon insertion.
         // A possible solution is to retrieve the event after insertion to get the generated ID.
-        scheduleEventNotification(event)
+        scheduleEventNotification(scheduledEvent)
     }
 
     fun updateEvent(updatedEvent: Event) = viewModelScope.launch {
