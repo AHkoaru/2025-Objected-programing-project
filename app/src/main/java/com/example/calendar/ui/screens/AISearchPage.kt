@@ -19,10 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.calendar.Constants
+import com.example.calendar.api.*
 import com.example.calendar.models.Event
 import com.example.calendar.ui.theme.*
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 data class Message(
     val id: String,
@@ -46,12 +49,28 @@ fun AISearchPage(
     var isLoading by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
+    // Gemini API 서비스 인스턴스 생성
+    val geminiService = remember { GeminiService.create() }
+
     val suggestedQuestions = listOf(
         "오늘 일정이 뭐야?",
         "내일 뭐 해야 해?",
         "이번 주 회의 일정 알려줘",
         "다음 주에 약속 있어?"
     )
+
+    // 일정 정보를 문자열로 변환하는 함수
+    fun formatEventsForAI(): String {
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd (E)", Locale.KOREAN)
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.KOREAN)
+
+        return events.joinToString("\n") { event ->
+            val dateStr = dateFormat.format(event.date)
+            "- ${event.title} | 날짜: $dateStr | 시간: ${event.startTime} - ${event.endTime}" +
+                    (event.location?.let { " | 장소: $it" } ?: "") +
+                    (event.description?.let { " | 내용: $it" } ?: "")
+        }
+    }
 
     Column(
         modifier = modifier
@@ -179,6 +198,7 @@ fun AISearchPage(
                 Button(
                     onClick = {
                         if (inputValue.isNotBlank() && !isLoading) {
+                            // 사용자 메시지 추가
                             val userMessage = Message(
                                 id = System.currentTimeMillis().toString(),
                                 type = MessageType.USER,
@@ -189,17 +209,84 @@ fun AISearchPage(
                             inputValue = ""
                             isLoading = true
 
-                            // 2. LaunchedEffect 대신 coroutineScope.launch 사용
+                            // Gemini API 호출
                             coroutineScope.launch {
-                                delay(1500)
-                                val aiMessage = Message(
-                                    id = (System.currentTimeMillis() + 1).toString(),
-                                    type = MessageType.AI,
-                                    content = "죄송합니다. AI 검색 기능은 아직 구현되지 않았습니다. " +
-                                            "실제 앱에서는 OpenAI API를 사용하여 일정을 검색할 수 있습니다."
-                                )
-                                messages = messages + aiMessage
-                                isLoading = false
+                                try {
+                                    // 프롬프트 생성 (일정 정보 포함)
+                                    val fullPrompt = """
+                                        당신은 일정 관리 AI 어시스턴트입니다.
+                                        사용자의 일정 정보를 기반으로 질문에 답변해주세요.
+
+                                        현재 등록된 일정 목록:
+                                        ${formatEventsForAI()}
+
+                                        답변 규칙:
+                                        - 친절하고 자연스러운 한국어로 답변하세요
+                                        - 일정 정보가 없으면 "등록된 일정이 없습니다"라고 알려주세요
+                                        - 날짜와 시간을 명확하게 알려주세요
+                                        - 간결하게 답변하세요 (3-4문장 이내)
+
+                                        사용자 질문: $query
+                                    """.trimIndent()
+
+                                    // Gemini API 요청 생성
+                                    val request = GeminiRequest(
+                                        contents = listOf(
+                                            Content(
+                                                parts = listOf(Part(text = fullPrompt))
+                                            )
+                                        ),
+                                        generationConfig = GenerationConfig(
+                                            temperature = Constants.TEMPERATURE,
+                                            topK = Constants.TOP_K,
+                                            topP = Constants.TOP_P,
+                                            maxOutputTokens = Constants.MAX_TOKENS
+                                        )
+                                    )
+
+                                    // API 호출
+                                    val response = geminiService.generateContent(
+                                        model = Constants.GEMINI_MODEL,
+                                        apiKey = Constants.GEMINI_API_KEY,
+                                        request = request
+                                    )
+
+                                    val aiResponse = if (response.isSuccessful) {
+                                        // 성공: AI 답변 추출
+                                        response.body()?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                                            ?: "응답을 받지 못했습니다."
+                                    } else {
+                                        // 실패: 에러 메시지
+                                        when (response.code()) {
+                                            400 -> "잘못된 요청입니다. API 키 또는 요청 형식을 확인해주세요."
+                                            401, 403 -> "API 키가 유효하지 않습니다. Constants.kt 파일에서 API 키를 확인해주세요."
+                                            429 -> "API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요."
+                                            500 -> "Gemini 서버 오류입니다. 잠시 후 다시 시도해주세요."
+                                            else -> "오류가 발생했습니다 (코드: ${response.code()}). 다시 시도해주세요."
+                                        }
+                                    }
+
+                                    // AI 메시지 추가
+                                    val aiMessage = Message(
+                                        id = (System.currentTimeMillis() + 1).toString(),
+                                        type = MessageType.AI,
+                                        content = aiResponse
+                                    )
+                                    messages = messages + aiMessage
+
+                                } catch (e: Exception) {
+                                    // 네트워크 오류 등 예외 처리
+                                    val errorMessage = Message(
+                                        id = (System.currentTimeMillis() + 1).toString(),
+                                        type = MessageType.AI,
+                                        content = "연결 오류가 발생했습니다.\n" +
+                                                "인터넷 연결을 확인하고 Constants.kt 파일의 API 키가 올바른지 확인해주세요.\n\n" +
+                                                "오류: ${e.message}"
+                                    )
+                                    messages = messages + errorMessage
+                                } finally {
+                                    isLoading = false
+                                }
                             }
                         }
                     },

@@ -42,9 +42,8 @@ fun EventListPage(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BackgroundGray)
-                .padding(bottom = 160.dp),
-            contentPadding = PaddingValues(20.dp),
+                .background(BackgroundGray),
+            contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Stats Card
@@ -75,7 +74,7 @@ fun EventListPage(
             onClick = onAddEvent,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 20.dp, bottom = 90.dp),
+                .padding(end = 20.dp, bottom = 20.dp),
             containerColor = Blue600,
             shape = CircleShape
         ) {

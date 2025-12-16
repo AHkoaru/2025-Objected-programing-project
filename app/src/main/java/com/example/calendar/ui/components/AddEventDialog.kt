@@ -177,7 +177,7 @@ fun AddEventDialog(
                         onClick = {
                             if (title.isNotBlank() && date.isNotBlank() && startTime.isNotBlank() && endTime.isNotBlank()) {
                                 val event = Event(
-                                    id = System.currentTimeMillis().toString(),
+                                    id = 0,
                                     title = title,
                                     date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(date) ?: Date(),
                                     startTime = formatTime(startTime),

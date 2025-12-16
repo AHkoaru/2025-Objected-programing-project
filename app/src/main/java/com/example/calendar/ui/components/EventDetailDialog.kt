@@ -31,7 +31,7 @@ fun EventDetailDialog(
     event: Event?,
     onClose: () -> Unit,
     onEdit: (Event) -> Unit,
-    onDelete: (String) -> Unit
+    onDelete: (Event) -> Unit
 ) {
     if (!open || event == null) return
 
@@ -140,7 +140,7 @@ fun EventDetailDialog(
                 ) {
                     OutlinedButton(
                         onClick = {
-                            onDelete(event.id)
+                            onDelete(event)
                             onClose()
                         },
                         modifier = Modifier.weight(1f),

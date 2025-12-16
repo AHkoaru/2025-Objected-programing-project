@@ -43,7 +43,7 @@ fun CalendarPage(
             modifier = Modifier
                 .fillMaxSize()
                 .background(BackgroundGray)
-                .padding(bottom = 160.dp),
+                .padding(bottom = 20.dp),
             contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
@@ -81,7 +81,7 @@ fun CalendarPage(
             onClick = onAddEvent,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 20.dp, bottom = 90.dp),
+                .padding(end = 20.dp, bottom = 20.dp),
             containerColor = Blue600,
             shape = CircleShape
         ) {
